@@ -1,67 +1,70 @@
-[
-	{
-		"name" : "ace",
-		"power" : 13,
-		"discord_icon" : ":regional_indicator_a:"
-	},
-	{
-		"name" : "two",
-		"power" : 14,
-		"discord_icon" : ":two:"
-	},
-	{
-		"name" : "three",
-		"power" : 2,
-		"discord_icon" : ":three:"
-	},
-	{
-		"name" : "four",
-		"power" : 3,
-		"discord_icon" : ":four:"
-	},
-	{
-		"name" : "five",
-		"power" : 4,
-		"discord_icon" : ":five:"
-	},
-	{
-		"name" : "six",
-		"power" : 5,
-		"discord_icon" : ":six:"
-	},
-	{
-		"name" : "seven",
-		"power" : 6,
-		"discord_icon" : ":seven:"
-	},
-	{
-		"name" : "eight",
-		"power" : 7,
-		"discord_icon" : ":eight:"
-	},
-	{
-		"name" : "nine",
-		"power" : 8,
-		"discord_icon" : ":nine:"
-	},
-	{
-		"name" : "ten",
-		"power" : 9,
-		"discord_icon" : ":keycap_ten:"
-	},
-	{
-		"name" : "jack",
-		"power" : 10,
-		"discord_icon" : ":regional_indicator_j:"
-	},
-	{
-		"name" : "queen",
-		"power" : 11,
-		"discord_icon" : ":regional_indicator_q:"
-	},
-	{
-		"name" : "king",
-		"power" : 12,
-		"discord_icon" : ":regional_indicator_k:"
-	}
-]
+{
+	"name" : "bigtworank",
+	"data" : [
+		{
+			"name" : "ace",
+			"power" : 13,
+			"discord_icon" : ":regional_indicator_a:"
+		},
+		{
+			"name" : "two",
+			"power" : 14,
+			"discord_icon" : ":two:"
+		},
+		{
+			"name" : "three",
+			"power" : 2,
+			"discord_icon" : ":three:"
+		},
+		{
+			"name" : "four",
+			"power" : 3,
+			"discord_icon" : ":four:"
+		},
+		{
+			"name" : "five",
+			"power" : 4,
+			"discord_icon" : ":five:"
+		},
+		{
+			"name" : "six",
+			"power" : 5,
+			"discord_icon" : ":six:"
+		},
+		{
+			"name" : "seven",
+			"power" : 6,
+			"discord_icon" : ":seven:"
+		},
+		{
+			"name" : "eight",
+			"power" : 7,
+			"discord_icon" : ":eight:"
+		},
+		{
+			"name" : "nine",
+			"power" : 8,
+			"discord_icon" : ":nine:"
+		},
+		{
+			"name" : "ten",
+			"power" : 9,
+			"discord_icon" : ":keycap_ten:"
+		},
+		{
+			"name" : "jack",
+			"power" : 10,
+			"discord_icon" : ":regional_indicator_j:"
+		},
+		{
+			"name" : "queen",
+			"power" : 11,
+			"discord_icon" : ":regional_indicator_q:"
+		},
+		{
+			"name" : "king",
+			"power" : 12,
+			"discord_icon" : ":regional_indicator_k:"
+		}
+	]
+}

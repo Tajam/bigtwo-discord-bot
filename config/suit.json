@@ -1,18 +1,25 @@
 {
-	"spades" : {
-		"power" : 3,
-		"discord_icon" : ":spades:"
-	},
-	"hearts" : {
-		"power" : 2,
-		"discord_icon" : ":hearts:"
-	},
-	"clubs" : {
-		"power" : 1,
-		"discord_icon" : ":clubs:"
-	},
-	"diamonds" : {
-		"power" : 0,
-		"discord_icon" : ":diamonds:"
-	}
+	"name" : "pokersuit",
+	"data" : [
+		{
+			"name" : "spades",
+			"power" : 3,
+			"discord_icon" : ":spades:"
+		},
+		{
+			"name" : "hearts",
+			"power" : 2,
+			"discord_icon" : ":hearts:"
+		},
+		{
+			"name" : "clubs",
+			"power" : 1,
+			"discord_icon" : ":clubs:"
+		},
+		{
+			"name" : "diamonds",
+			"power" : 0,
+			"discord_icon" : ":diamonds:"
+		}
+	]
 }
