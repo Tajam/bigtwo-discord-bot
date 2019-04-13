@@ -1,14 +1,16 @@
 import json
 import random
 
-class PokerSuit():
+
+class PokerSuit:
     SPADES = 0
     HEARTS = 1
     CLUBS = 2
     DIAMONDS = 3
     CONFIG_FILE = '../config/suit.json'
 
-class SuitSet():
+
+class SuitSet:
 
     def __init__(self, config):
         with open(config, 'r') as f:
@@ -35,6 +37,7 @@ class SuitSet():
         s = random.choice(self._data)
         return _Suit(s)
 
+
 class _Suit():
 
     def __init__(self, suit):
@@ -56,6 +59,7 @@ class _Suit():
 
     def __eq__(self, other):
         return self._power == other._power
+
 
 if __name__ == '__main__':
     poker_set = SuitSet(PokerSuit.CONFIG_FILE)

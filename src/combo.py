@@ -4,6 +4,7 @@ from suit import PokerSuit
 #Not so generic class
 class BigTwoCombo():
     NONE = 'invalid'
+    SINGLE = 'single'
     DOUBLE = 'double'
     TRIPLE = 'triple'
     STRAIGHT = 'straight'
@@ -16,6 +17,9 @@ class BigTwoCombo():
         self.card_list = sorted(card_list)
         self.length = len(self.card_list)
         self._leader = max(card_list)
+        self._type = None
+        self._combo_power = 0
+        #Start detect everything
         self._detect_combo()
 
     def __str__(self):
@@ -24,7 +28,37 @@ class BigTwoCombo():
     def __repr__(self):
         return self.__class__.__name__+'(\''+str(self)+'\')'
 
+    def __eq__(self, other):
+        if other == None:
+            return False
+        return self.length == other.length
+
+    def __gt__(self, other):
+        if self == other:
+            if self.length == 5:
+                if self._type == other._type:
+                    if self._type in [BigTwoCombo.FLUSH, BigTwoCombo.ROYAL_FLUSH]:
+                        if self._leader.suit == other._leader.suit:
+                            return self._leader > other._leader
+                        else:
+                            return self._leader.suit > other._leader.suit
+                    else:
+                        return self._leader > other._leader
+                else:
+                    return self._combo_power > other._combo_power
+            elif self.length in range(1, 4):
+                return self._leader > other._leader
+            else:
+                raise Exception('Comparing invalid combos')
+        raise Exception('Invalid comparison of combo with different card numbers')
+
+    def __lt__(self, other):
+        raise Exception('Please use greater than comparison')
+
     def _detect_combo(self):
+        if self.length == 1:
+            self._type = BigTwoCombo.SINGLE
+            return
         if self.length == 5:
             s = self._is_straight()
             f = self._is_flush()
@@ -62,8 +96,10 @@ class BigTwoCombo():
             self._leader = max(dd)
             if len(dd) == 4:
                 self._type = BigTwoCombo.FOUR_OF_A_KIND
+                self._combo_power = 4
             if len(dd) == 3:
                 self._type = BigTwoCombo.HOUSE
+                self._combo_power = 3
             return True
         return False
                 

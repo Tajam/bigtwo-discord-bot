@@ -1,25 +1,39 @@
 class Player():
 
-    def __init__(self, player_name):
-        self.player_name = player_name
-        self._cards = []
+    def __init__(self, player_object):
+        self.player_object = player_object
+        self.cards = []
 
     def give_card(self, card):
-        self._cards.append(card)
-        self._cards.sort()
+        self.cards.append(card)
+        self.cards.sort()
     
     def give_cards(self, cards):
-        self._cards = sorted(cards)
+        self.cards += cards
+        self.cards.sort()
 
     def throw_cards(self, indexes):
         out, left = [], []
-        for i, n in enumerate(self._cards):
+        for i, n in enumerate(self.cards):
             if i in indexes:
                 out.append(n)
             else:
                 left.append(n)
-        self._cards = left
+        self.cards = left
+        return out
+
+    def peek_cards(self, indexes):
+        out = []
+        for i, n in enumerate(self.cards):
+            if i in indexes:
+                out.append(n)
         return out
 
     def have_card(self, card):
-        return card in self._cards
+        return card in self.cards
+
+    def get_card_discord_format(self):
+        message = []
+        for n, i in enumerate(self.cards):
+            message.append("`{:0>2d}` {}".format(n ,i.emoji()))
+        return '\n'.join(message)

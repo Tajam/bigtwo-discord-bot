@@ -1,12 +1,15 @@
 import json
 import random
 
-class BigTwoRank():
+
+class BigTwoRank:
+
     LARGEST = 1
     SMALLEST = 2
     CONFIG_FILE = '../config/rank.json'
 
-class RankSet():
+
+class RankSet:
 
     def __init__(self, config):
         with open(config, 'r') as f:
@@ -38,10 +41,12 @@ class RankSet():
     def get_random(self):
         s = random.choice(self._data)
         return _Rank(s)
-    
-class _Rank():
+
+
+class _Rank:
     data = None
     config = '../config/rank.json'
+
     def __init__(self, rank):
         self._name = rank['name']
         self._power = rank['power']
@@ -61,6 +66,7 @@ class _Rank():
 
     def __eq__(self, other):
         return self._power == other._power
+
 
 if __name__ == '__main__':
     bigtwo_rank = RankSet(BigTwoRank.CONFIG_FILE)
