@@ -1,5 +1,7 @@
 from player import Player
+from bigtwo import BigTwo
 import random
+import math
 
 class Server():
     
@@ -34,6 +36,7 @@ class Lobby():
     def __init__(self, refid):
         self._refid = refid
         self.player_pool = {}
+        self.started = False
 
     def set_host(self, player_id):
         if player_id in self.player_pool:
@@ -56,5 +59,15 @@ class Lobby():
         if len(self.player_pool) == 0:
             return True
         return False
-        
+
+    def start_game(self):
+        shuffled_cards = BigTwo.DECK.list_random()
+        x = math.floor(len(shuffled_cards)/len(self.player_pool))
+        for _ in range(x):
+            for i in self.player_pool:
+                self.player_pool[i].give_card(shuffled_cards.pop())
+        if len(self.player_pool) == 3:
+            smallest_card = BigTwo.DECK.get_card(BigTwoRank.SMALLEST,PokerSuit.DIAMONDS)
+            for i in self.player_pool:
+                #HERE
         
