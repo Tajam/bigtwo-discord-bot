@@ -10,10 +10,10 @@ I have done the first release of this bot. However, it's not tested yet. Some fa
 The ranking for suit and rank of the card is recorded in a .json file.
 
 ### Straight
-Iterate throught all input cards. If the rank of the card number *I* is next rank of card number *I + 1*, add 1 to valid point. Return true if there is 4 valid points.
+Iterate throught all input cards. If the rank of the card number ***i + 1*** is next rank of card number ***i***, add 1 to valid point. Return true if there is 4 valid points.
 
 ### Flush
-Iterate throught all input cards. If any of the suit of card number *I* and card number *I + 1* is not match, return false.
+Iterate throught all input cards. If any of the suit of card number ***i*** and card number ***i + 1*** is not match, return false.
 
 ### Royal Flush
 Straight and Flush
