@@ -189,6 +189,11 @@ async def throw(ctx, *args):
             return
         player.throw_cards(indexes)
         await show_board(ctx.message.channel, SERVER.lobby_list[l])
+        #Check victory
+        if len(player.cards) == 0:
+            await bot.say('<@{}> wins the game!'.format(n))
+            SERVER.lobby_list[l].stop()
+            return
         await show_turn(ctx.message.channel, SERVER.lobby_list[l])
         await direct_message_card({n:SERVER.lobby_list[l].player_pool[n]})
 
