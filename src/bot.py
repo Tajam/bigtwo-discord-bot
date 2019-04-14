@@ -27,6 +27,14 @@ async def direct_message_stop(player_pool):
         player = player_pool[p]
         await bot.send_message(player.player_object, 'Game stopped.')
 
+async def direct_message_winner(player_pool, winner_id):
+    for p in player_pool:
+        player = player_pool[p]
+        if p == winner_id:
+            await bot.send_message(player.player_object, 'You are the winner!')
+            return
+        await bot.send_message(player.player_object, 'Game ended.')
+
 async def show_board(channel, lobby):
     owner = lobby.current_owner
     combo = lobby.current_combo
@@ -94,6 +102,10 @@ async def flip(number = 1):
 @bot.command(pass_context = True)
 async def create(ctx):
     s, c, n, l = context_unpack(ctx)
+    for lobby in SERVER.lobby_list:
+        if n in SERVER.lobby_list[lobby].player_pool:
+            await bot.say('You already joined a game in other channel. <@{}>'.format(n))
+            return
     if SERVER.add_lobby(s,c):
         await bot.say('<@{}> created a game in this channel.'.format(n))
         SERVER.lobby_list[l].join(ctx.message.author)
@@ -105,9 +117,15 @@ async def create(ctx):
 async def join(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
+        if SERVER.lobby_list[l].started:
+            return
         if n in SERVER.lobby_list[l].player_pool:
             await bot.say('Already joined this game. <@{}>'.format(n))
             return
+        for lobby in SERVER.lobby_list:
+            if n in SERVER.lobby_list[lobby].player_pool:
+                await bot.say('You already joined a game in other channel. <@{}>'.format(n))
+                return
         if SERVER.lobby_list[l].join(ctx.message.author):
             await bot.say('Joined game! <@{}>'.format(n))
             return
@@ -120,10 +138,17 @@ async def leave(ctx):
         if n not in SERVER.lobby_list[l].player_pool:
             await bot.say('You did not join any game. <@{}>'.format(n))
             return
-        await bot.say('Game left! <@{}>'.format(n))
+        if SERVER.lobby_list[l].started:
+            await bot.say('Abandoned game! <@{}>'.format(n))
+            if len(SERVER.lobby_list[l].player_pool) == 1:
+                SERVER.lobby_list[l].stop()
+                await bot.say('Only 1 player left, game stopped.')
+                await direct_message_stop(SERVER.lobby_list[l].player_pool)
+        else:
+            await bot.say('Game left! <@{}>'.format(n))
         if SERVER.lobby_list[l].leave(ctx.message.author):
             SERVER.remove_lobby(s,c)
-            await bot.say('Everyone has left the game, game closed.'.format(n))
+            await bot.say('Everyone has left the game, game closed.')
             return
         if SERVER.lobby_list[l].host_id == n:
             new_host = SERVER.lobby_list[l].set_random_host()
@@ -167,11 +192,14 @@ async def throw(ctx, *args):
     if l in SERVER.lobby_list:
         if n not in SERVER.lobby_list[l].player_pool:
             return
+        if not SERVER.lobby_list[l].started:
+            return
         indexes = []
         try:
             indexes = [int(n) for n in args]
         except Exception:
             await bot.say('Invalid input. <@{}>'.format(n))
+            return
         player = SERVER.lobby_list[l].player_pool[n]
         player_cards = player.cards
         if max(indexes) >= len(player_cards):

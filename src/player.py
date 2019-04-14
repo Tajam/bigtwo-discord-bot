@@ -33,7 +33,7 @@ class Player():
         return card in self.cards
 
     def get_card_discord_format(self):
-        message = []
+        message = ['`{}`'.format('-'*10)]
         for n, i in enumerate(self.cards):
-            message.append("`{:0>2d}` {}".format(n ,i.emoji()))
+            message.append('`{:0>2d}` {}'.format(n ,i.emoji()))
         return '\n'.join(message)
