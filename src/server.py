@@ -89,7 +89,7 @@ class Lobby:
             smallest_card = BigTwo.DECK.get_card(BigTwoRank.SMALLEST, PokerSuit.DIAMONDS)
             for i in self.player_pool:
                 if self.player_pool[i].have_card(smallest_card):
-                    self.player_pool[i].throw_cards(0)
+                    self.player_pool[i].throw_cards([0])
                     self.player_pool[i].give_card(shuffled_cards.pop())
                     break
         self.player_turn = [n for n in self.player_pool]

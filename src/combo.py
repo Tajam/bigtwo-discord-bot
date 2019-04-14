@@ -9,7 +9,7 @@ class BigTwoCombo():
     TRIPLE = 'triple'
     STRAIGHT = 'straight'
     FLUSH = 'flush'
-    HOUSE = 'house'
+    HOUSE = 'full house'
     FOUR_OF_A_KIND = 'four of a kind'
     ROYAL_FLUSH = 'royal flush'
 

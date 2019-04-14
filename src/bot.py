@@ -39,7 +39,8 @@ async def show_board(channel, lobby):
     owner = lobby.current_owner
     combo = lobby.current_combo
     card_list_msg = '\n'.join([n.emoji() for n in combo.card_list])
-    description = '{} by <@{}>'.format(combo._type.capitalize(), owner)
+    card_left = len(lobby.player_pool[owner].cards)
+    description = '`{} by` <@{}> `{} card{} left`'.format(combo._type.capitalize(), owner, card_left, 's'*int(card_left > 1))
     await bot.send_message(channel, '{}\n{}'.format(card_list_msg, description))
 
 async def show_turn(channel, lobby):
