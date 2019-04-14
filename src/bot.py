@@ -123,6 +123,9 @@ async def join(ctx):
         if n in SERVER.lobby_list[l].player_pool:
             await bot.say('Already joined this game. <@{}>'.format(n))
             return
+        if len(SERVER.lobby_list[l].player_pool) == 4:
+            await bot.say('This game is full. <@{}>'.format(n))
+            return
         for lobby in SERVER.lobby_list:
             if n in SERVER.lobby_list[lobby].player_pool:
                 await bot.say('You already joined a game in other channel. <@{}>'.format(n))
@@ -141,16 +144,16 @@ async def leave(ctx):
             return
         if SERVER.lobby_list[l].started:
             await bot.say('Abandoned game! <@{}>'.format(n))
-            if len(SERVER.lobby_list[l].player_pool) == 1:
-                SERVER.lobby_list[l].stop()
-                await bot.say('Only 1 player left, game stopped.')
-                await direct_message_stop(SERVER.lobby_list[l].player_pool)
         else:
             await bot.say('Game left! <@{}>'.format(n))
         if SERVER.lobby_list[l].leave(ctx.message.author):
             SERVER.remove_lobby(s,c)
             await bot.say('Everyone has left the game, game closed.')
             return
+        if len(SERVER.lobby_list[l].player_pool) == 1 & SERVER.lobby_list[l].started:
+            SERVER.lobby_list[l].stop()
+            await bot.say('Only 1 player left, game stopped.')
+            await direct_message_stop(SERVER.lobby_list[l].player_pool)
         if SERVER.lobby_list[l].host_id == n:
             new_host = SERVER.lobby_list[l].set_random_host()
             await bot.say('Host left, <@{}> is assigned as new host.'.format(new_host))
@@ -235,8 +238,11 @@ async def skip(ctx, *args):
             return
         if not SERVER.lobby_list[l].whos_turn() == n:
             return
+        if SERVER.lobby_list[l].current_combo == None:
+            await bot.say('You cannot skip a free throw round. <@{}>'.format(n))
+            return
         SERVER.lobby_list[l].next_turn()
-        bot.say('<@{}> skipped.'.format(n))
+        await bot.say('<@{}> skipped.'.format(n))
         await show_turn(ctx.message.channel, SERVER.lobby_list[l])
 
 while True:
