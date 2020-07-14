@@ -1,4 +1,6 @@
 # BigTwoBot for Discord
+Forked from [Tajam/bigtwo-discord-bot](https://github.com/Tajam/bigtwo-discord-bot).
+
 A simple Discord bot which allow members to play [Big Two](https://en.wikipedia.org/wiki/Big_two) card game in each channel.
 
 Made from scratch using [discord.py](https://github.com/Rapptz/discord.py)
