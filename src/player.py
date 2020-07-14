@@ -1,5 +1,7 @@
-class Player():
+import discord
 
+
+class Player:
     def __init__(self, player_object):
         self.player_object = player_object
         self.cards = []
@@ -7,7 +9,7 @@ class Player():
     def give_card(self, card):
         self.cards.append(card)
         self.cards.sort()
-    
+
     def give_cards(self, cards):
         self.cards += cards
         self.cards.sort()
@@ -32,8 +34,14 @@ class Player():
     def have_card(self, card):
         return card in self.cards
 
+    @staticmethod
+    def change_card_emoji(card):
+        return f"{card.rank._name}{card.suit._name}"
+
     def get_card_discord_format(self):
-        message = ['`{}`'.format('-'*10)]
+        message = []
         for n, i in enumerate(self.cards):
-            message.append('`{:0>2d}` {}'.format(n ,i.emoji()))
-        return '\n'.join(message)
+            message.append(f"{self.change_card_emoji(i)}")
+        
+        return message
+

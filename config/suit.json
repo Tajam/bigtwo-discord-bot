@@ -2,22 +2,22 @@
 	"name" : "pokersuit",
 	"data" : [
 		{
-			"name" : "spades",
+			"name" : "S",
 			"power" : 3,
 			"discord_icon" : ":spades:"
 		},
 		{
-			"name" : "hearts",
+			"name" : "H",
 			"power" : 2,
 			"discord_icon" : ":hearts:"
 		},
 		{
-			"name" : "clubs",
+			"name" : "C",
 			"power" : 1,
 			"discord_icon" : ":clubs:"
 		},
 		{
-			"name" : "diamonds",
+			"name" : "D",
 			"power" : 0,
 			"discord_icon" : ":diamonds:"
 		}

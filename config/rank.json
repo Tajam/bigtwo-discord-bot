@@ -2,67 +2,67 @@
 	"name" : "bigtworank",
 	"data" : [
 		{
-			"name" : "ace",
+			"name" : "A",
 			"power" : 13,
 			"discord_icon" : ":regional_indicator_a:"
 		},
 		{
-			"name" : "two",
+			"name" : "2",
 			"power" : 14,
 			"discord_icon" : ":two:"
 		},
 		{
-			"name" : "three",
+			"name" : "3",
 			"power" : 2,
 			"discord_icon" : ":three:"
 		},
 		{
-			"name" : "four",
+			"name" : "4",
 			"power" : 3,
 			"discord_icon" : ":four:"
 		},
 		{
-			"name" : "five",
+			"name" : "5",
 			"power" : 4,
 			"discord_icon" : ":five:"
 		},
 		{
-			"name" : "six",
+			"name" : "6",
 			"power" : 5,
 			"discord_icon" : ":six:"
 		},
 		{
-			"name" : "seven",
+			"name" : "7",
 			"power" : 6,
 			"discord_icon" : ":seven:"
 		},
 		{
-			"name" : "eight",
+			"name" : "8",
 			"power" : 7,
 			"discord_icon" : ":eight:"
 		},
 		{
-			"name" : "nine",
+			"name" : "9",
 			"power" : 8,
 			"discord_icon" : ":nine:"
 		},
 		{
-			"name" : "ten",
+			"name" : "10",
 			"power" : 9,
 			"discord_icon" : ":keycap_ten:"
 		},
 		{
-			"name" : "jack",
+			"name" : "J",
 			"power" : 10,
 			"discord_icon" : ":regional_indicator_j:"
 		},
 		{
-			"name" : "queen",
+			"name" : "Q",
 			"power" : 11,
 			"discord_icon" : ":regional_indicator_q:"
 		},
 		{
-			"name" : "king",
+			"name" : "K",
 			"power" : 12,
 			"discord_icon" : ":regional_indicator_k:"
 		}
