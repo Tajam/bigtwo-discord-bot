@@ -8,30 +8,29 @@ import math
 
 
 class Server:
-    
     def __init__(self, name):
         self._name = name
         self.lobby_list = {}
 
     def add_lobby(self, server_id, channel_id):
-        l = '{}-{}'.format(server_id, channel_id)
+        l = "{}-{}".format(server_id, channel_id)
         if l in self.lobby_list:
             return False
         self.lobby_list[l] = Lobby(Server.generate_hash(10))
         return True
 
     def remove_lobby(self, server_id, channel_id):
-        l = '{}-{}'.format(server_id, channel_id)
+        l = "{}-{}".format(server_id, channel_id)
         self.lobby_list.pop(l, None)
-    
+
     @staticmethod
     def generate_hash(length):
-        h = ''
+        h = ""
         for _ in range(length):
-            d = chr(random.randint(48,57))
-            u = chr(random.randint(65,90))
-            l = chr(random.randint(97,122))
-            h += random.choice([d,u,l])
+            d = chr(random.randint(48, 57))
+            u = chr(random.randint(65, 90))
+            l = chr(random.randint(97, 122))
+            h += random.choice([d, u, l])
         return h
 
 
@@ -70,30 +69,38 @@ class Lobby:
         return False
 
     def stop(self):
-        if not self.started: return False
+        if not self.started:
+            return False
         self.started = False
         for i in self.player_pool:
             self.player_pool[i].cards = []
         return True
 
     def start(self):
-        if self.started: return False
+        if self.started:
+            return False
         self.started = True
         shuffled_cards = BigTwo.DECK.list_random()
-        x = math.floor(len(shuffled_cards)/len(self.player_pool))
+        x = math.floor(len(shuffled_cards) / len(self.player_pool))
         for _ in range(x):
             for i in self.player_pool:
                 self.player_pool[i].give_card(shuffled_cards.pop())
-        #Give the extra card to the player who owns the smallest card
+        # Give the extra card to the player who owns the smallest card
+        smallest_card = BigTwo.DECK.get_card(BigTwoRank.SMALLEST, PokerSuit.DIAMONDS)
         if len(self.player_pool) == 3:
-            smallest_card = BigTwo.DECK.get_card(BigTwoRank.SMALLEST, PokerSuit.DIAMONDS)
             for i in self.player_pool:
                 if self.player_pool[i].have_card(smallest_card):
                     self.player_pool[i].throw_cards([0])
                     self.player_pool[i].give_card(shuffled_cards.pop())
                     break
+
         self.player_turn = [n for n in self.player_pool]
         random.shuffle(self.player_turn)
+        player_id, _ = next(
+            filter(lambda p: p[1].have_card(smallest_card), self.player_pool.items(),)
+        )
+        self.player_turn.remove(player_id)
+        self.player_turn.insert(0, player_id)
         return True
 
     def attack(self, player_id, cards):

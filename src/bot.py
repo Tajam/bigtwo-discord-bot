@@ -1,8 +1,10 @@
+import discord
 from discord.ext import commands
 from bigtwo import BigTwo
 from server import Server
 import random as rnd
 import time
+from math import ceil
 
 # Global functions
 def get_token():
@@ -11,7 +13,7 @@ def get_token():
 
 
 def context_unpack(ctx):
-    s = ctx.message.guild.id
+    s = ctx.message.guild.id if ctx.message.guild else None
     c = ctx.message.channel.id
     n = ctx.message.author.id
     l = "{}-{}".format(s, c)
@@ -39,7 +41,7 @@ async def direct_message_card(ctx, player_pool):
             6: "| 48 || 49 || 50 || 51 | ",
         }
 
-        for i in range(len(emoji_list) // 8 + 1):
+        for i in range(ceil(len(emoji_list) / 8.0)):
             single_line_emoji_list = emoji_list[i * 8 : (i + 1) * 8]
             await player.player_object.send("".join(single_line_emoji_list))
             await player.player_object.send(
@@ -65,12 +67,17 @@ async def direct_message_winner(ctx, player_pool, winner_id):
 async def show_board(ctx, lobby):
     owner = lobby.current_owner
     combo = lobby.current_combo
-    card_list_msg = "\n".join([n.emoji() for n in combo.card_list])
+    if combo is None:
+        return
+    card_list_msg = [f"{card.rank._name}{card.suit._name}" for card in combo.card_list]
+    emoji_list = [
+        f"{next(filter(lambda emoji: emoji_name == emoji.name , bot.emojis))}"
+        for emoji_name in card_list_msg
+    ]
     card_left = len(lobby.player_pool[owner].cards)
-    description = "`{} by` <@{}> `{} card{} left`".format(
-        combo._type.capitalize(), owner, card_left, "s" * int(card_left > 1)
-    )
-    await ctx.send("{}\n{}".format(card_list_msg, description))
+    description = f"`{combo._type.capitalize()} by` <@{owner}> `{card_left} card{'s' * int(card_left > 1)} left`"
+    await ctx.send(f"{''.join(emoji_list)}")
+    await ctx.send(f"{description}")
 
 
 async def show_turn(ctx, lobby):
@@ -221,7 +228,7 @@ async def start(ctx):
             await ctx.send("Game already started. <@{}>".format(n))
             return
         if len(SERVER.lobby_list[l].player_pool) < 2:
-            await ctx.send('This game need at least 2 players. <@{}>'.format(n))
+            await ctx.send("This game need at least 2 players. <@{}>".format(n))
             return
         SERVER.lobby_list[l].start()
         await ctx.send("Game started! Your cards will be direct messaged to you.")
@@ -244,60 +251,86 @@ async def stop(ctx):
 
 @bot.command(pass_context=True)
 async def throw(ctx, *args):
-    s, c, n, l = context_unpack(ctx)
-    if l in SERVER.lobby_list:
-        if n not in SERVER.lobby_list[l].player_pool:
-            return
-        if not SERVER.lobby_list[l].started:
-            return
-        indexes = []
-        try:
-            indexes = [int(n) for n in args]
-        except Exception:
-            await ctx.send("Invalid input. <@{}>".format(n))
-            return
-        player = SERVER.lobby_list[l].player_pool[n]
-        player_cards = player.cards
-        if max(indexes) >= len(player_cards):
-            await ctx.send("Index exceed card number. <@{}>".format(n))
-            return
-        cards = player.peek_cards(indexes)
-        res = SERVER.lobby_list[l].attack(n, cards)
-        res_msg = [
-            "Not your turn. <@{}>".format(n),
-            "Invalid card combination. <@{}>".format(n),
-            "Opponent card is better. <@{}>".format(n),
-        ]
-        if res != 0:
-            await ctx.send(res_msg[res - 1])
-            return
-        player.throw_cards(indexes)
-        await show_board(ctx.message.channel, SERVER.lobby_list[l])
-        # Check victory
-        if len(player.cards) == 0:
-            SERVER.lobby_list[l].stop()
-            await ctx.send("<@{}> wins the game!".format(n))
-            await direct_message_winner(ctx, SERVER.lobby_list[l].player_pool, n)
-            del SERVER.lobby_list[l]
-            return
-        await show_turn(ctx, SERVER.lobby_list[l])
+    _, _, n, l = context_unpack(ctx)
+
+    if l not in SERVER.lobby_list:
+
+        def find_lobby_id(item):
+            l_id, lob = item
+            if n in lob.player_pool:
+                return True
+            return False
+
+        l, _ = next(filter(find_lobby_id, SERVER.lobby_list.items(),))
+
+    if n not in SERVER.lobby_list[l].player_pool:
+        return
+    if not SERVER.lobby_list[l].started:
+        return
+    indexes = []
+    try:
+        indexes = [int(n) for n in args]
+    except Exception:
+        await ctx.send("Invalid input. <@{}>".format(n))
+        return
+    player = SERVER.lobby_list[l].player_pool[n]
+    player_cards = player.cards
+    if max(indexes) >= len(player_cards):
+        await ctx.send("Index exceed card number. <@{}>".format(n))
+        return
+    cards = player.peek_cards(indexes)
+    res = SERVER.lobby_list[l].attack(n, cards)
+    res_msg = [
+        "Not your turn. <@{}>".format(n),
+        "Invalid card combination. <@{}>".format(n),
+        "Opponent card is better. <@{}>".format(n),
+    ]
+    if res != 0:
+        await ctx.send(res_msg[res - 1])
+        return
+    player.throw_cards(indexes)
+    channel = ctx.message.channel
+    if type(channel) is discord.DMChannel:
+        channel = bot.get_channel(int(l.split("-")[1]))
+    await show_board(channel, SERVER.lobby_list[l])
+
+    # Check victory
+    if len(player.cards) == 0:
+        SERVER.lobby_list[l].stop()
+        await channel.send("<@{}> wins the game!".format(n))
+        await direct_message_winner(ctx, SERVER.lobby_list[l].player_pool, n)
+    else:
+        await show_turn(channel, SERVER.lobby_list[l])
         await direct_message_card(ctx, {n: SERVER.lobby_list[l].player_pool[n]})
 
 
 @bot.command(pass_context=True)
 async def skip(ctx, *args):
-    s, c, n, l = context_unpack(ctx)
-    if l in SERVER.lobby_list:
-        if n not in SERVER.lobby_list[l].player_pool:
-            return
-        if not SERVER.lobby_list[l].whos_turn() == n:
-            return
-        if SERVER.lobby_list[l].current_combo == None:
-            await ctx.send("You cannot skip a free throw round. <@{}>".format(n))
-            return
-        SERVER.lobby_list[l].next_turn()
-        await ctx.send("<@{}> skipped.".format(n))
-        await show_turn(ctx, SERVER.lobby_list[l])
+    _, _, n, l = context_unpack(ctx)
+
+    if l not in SERVER.lobby_list:
+
+        def find_lobby_id(item):
+            l_id, lob = item
+            if n in lob.player_pool:
+                return True
+            return False
+
+        l, _ = next(filter(find_lobby_id, SERVER.lobby_list.items(),))
+
+    if n not in SERVER.lobby_list[l].player_pool:
+        return
+    if not SERVER.lobby_list[l].whos_turn() == n:
+        return
+    if SERVER.lobby_list[l].current_combo == None:
+        await ctx.send("You cannot skip a free throw round. <@{}>".format(n))
+        return
+    SERVER.lobby_list[l].next_turn()
+    channel = ctx.message.channel
+    if type(channel) is discord.DMChannel:
+        channel = bot.get_channel(int(l.split("-")[1]))
+    await channel.send("<@{}> skipped.".format(n))
+    await show_board(channel, SERVER.lobby_list[l])
 
 
 while True:
