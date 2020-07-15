@@ -34,14 +34,6 @@ class Player:
     def have_card(self, card):
         return card in self.cards
 
-    @staticmethod
-    def change_card_emoji(card):
-        return f"{card.rank._name}{card.suit._name}"
-
     def get_card_discord_format(self):
-        message = []
-        for n, i in enumerate(self.cards):
-            message.append(f"{self.change_card_emoji(i)}")
-        
-        return message
+        return [f"{card.rank._name}{card.suit._name}" for card in self.cards]
 

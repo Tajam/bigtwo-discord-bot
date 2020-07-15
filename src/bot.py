@@ -26,7 +26,25 @@ async def direct_message_card(ctx, player_pool):
             f"{next(filter(lambda emoji: emoji_name == emoji.name , bot.emojis))}"
             for emoji_name in player.get_card_discord_format()
         ]
-        await player.player_object.send("".join(emoji_list))
+        await player.player_object.send(
+            "- - - - - - - - - - - - - - - - Current ✋ - - - - - - - - - - - - - - - -"
+        )
+        index_dict = {
+            0: "| 0 | | 1 | | 2 | | 3 | | 4  | | 5 | | 6 | | 7 | ",
+            1: "| 8 | | 9 | | 10 || 11 || 12 || 13 || 14 || 15 | ",
+            2: "| 16 || 17 || 18 || 19 || 20 || 21 || 22 || 23 | ",
+            3: "| 24 || 25 || 26 || 27 || 28 || 29 || 30 || 31 | ",
+            4: "| 32 || 33 || 34 || 35 || 36 || 37 || 38 || 39 | ",
+            5: "| 40 || 41 || 42 || 43 || 44 || 45 || 46 || 47 | ",
+            6: "| 48 || 49 || 50 || 51 | ",
+        }
+
+        for i in range(len(emoji_list) // 8 + 1):
+            single_line_emoji_list = emoji_list[i * 8 : (i + 1) * 8]
+            await player.player_object.send("".join(single_line_emoji_list))
+            await player.player_object.send(
+                f"```{'|'.join(index_dict[i].split('|')[: len(single_line_emoji_list) * 2])}|```"
+            )
 
 
 async def direct_message_stop(ctx, player_pool):
