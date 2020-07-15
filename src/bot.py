@@ -220,9 +220,9 @@ async def start(ctx):
         if SERVER.lobby_list[l].started:
             await ctx.send("Game already started. <@{}>".format(n))
             return
-        # if len(SERVER.lobby_list[l].player_pool) < 2:
-        #     await ctx.send('This game need at least 2 players. <@{}>'.format(n))
-        #     return
+        if len(SERVER.lobby_list[l].player_pool) < 2:
+            await ctx.send('This game need at least 2 players. <@{}>'.format(n))
+            return
         SERVER.lobby_list[l].start()
         await ctx.send("Game started! Your cards will be direct messaged to you.")
         await show_turn(ctx, SERVER.lobby_list[l])
@@ -278,6 +278,7 @@ async def throw(ctx, *args):
             SERVER.lobby_list[l].stop()
             await ctx.send("<@{}> wins the game!".format(n))
             await direct_message_winner(ctx, SERVER.lobby_list[l].player_pool, n)
+            del SERVER.lobby_list[l]
             return
         await show_turn(ctx, SERVER.lobby_list[l])
         await direct_message_card(ctx, {n: SERVER.lobby_list[l].player_pool[n]})
