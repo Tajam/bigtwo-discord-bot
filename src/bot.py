@@ -168,7 +168,7 @@ async def create(ctx):
     await ctx.send("This channel is occupied. <@{}>".format(n))
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=['j'])
 async def join(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -192,7 +192,7 @@ async def join(ctx):
         await ctx.send("Sorry, this game is full. <@{}>".format(n))
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, 'l')
 async def leave(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -217,7 +217,7 @@ async def leave(ctx):
             return
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=['go'])
 async def start(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -249,7 +249,7 @@ async def stop(ctx):
         await ctx.send("Game stopped by host.")
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=['t', 'play', 'p'])
 async def throw(ctx, *args):
     _, _, n, l = context_unpack(ctx)
 
@@ -304,7 +304,7 @@ async def throw(ctx, *args):
         await direct_message_card(ctx, {n: SERVER.lobby_list[l].player_pool[n]})
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=['pass','s'])
 async def skip(ctx, *args):
     _, _, n, l = context_unpack(ctx)
 
