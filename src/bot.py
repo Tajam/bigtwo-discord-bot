@@ -20,17 +20,58 @@ def context_unpack(ctx):
     return [s, c, n, l]
 
 
+async def message_board_state(player_pool, messages):
+    for p in player_pool:
+        player = player_pool[p]
+        if len(player.player_board_messages) == 0:
+            await player.player_object.send(
+                "- - - - - - - - - - - - - - - - Current 𝄜 - - - - - - - - - - - - - - - -"
+            )
+            if len(messages) == 0:
+                player.player_board_messages.append(
+                    await player.player_object.send("-" + " " * 99 + "-")
+                )
+                player.player_board_messages.append(
+                    await player.player_object.send("-" + " " * 99 + "-")
+                )
+            else:
+                for mi, message in enumerate(messages):
+                    player.player_board_messages.append(
+                        await player.player_object.send(message)
+                    )
+        else:
+            for mi, message in enumerate(messages):
+                await player.player_board_messages[mi].edit(content=message)
+
+
+async def message_status(
+    player_pool, group_message, specific_player=None, specific_player_message=None,
+):
+    for p in player_pool:
+        player = player_pool[p]
+        if player.player_status_message == None:
+            await player.player_object.send(
+                "- - - - - - - - - - - - - - - - Current ⚐ - - - - - - - - - - - - - - - -"
+            )
+            player.player_status_message = await player.player_object.send(
+                group_message
+            )
+        else:
+            if p == specific_player:
+                await player.player_status_message.edit(content=specific_player_message)
+            else:
+                await player.player_status_message.edit(content=group_message)
+
+
 # Game functions
-async def direct_message_card(ctx, player_pool):
+async def direct_message_card(player_pool):
     for p in player_pool:
         player = player_pool[p]
         emoji_list = [
             f"{next(filter(lambda emoji: emoji_name == emoji.name , bot.emojis))}"
             for emoji_name in player.get_card_discord_format()
         ]
-        await player.player_object.send(
-            "- - - - - - - - - - - - - - - - Current ✋ - - - - - - - - - - - - - - - -"
-        )
+
         index_dict = {
             0: "| 0 | | 1 | | 2 | | 3 | | 4  | | 5 | | 6 | | 7 | ",
             1: "| 8 | | 9 | | 10 || 11 || 12 || 13 || 14 || 15 | ",
@@ -41,27 +82,41 @@ async def direct_message_card(ctx, player_pool):
             6: "| 48 || 49 || 50 || 51 | ",
         }
 
+        messages = []
+
         for i in range(ceil(len(emoji_list) / 8.0)):
             single_line_emoji_list = emoji_list[i * 8 : (i + 1) * 8]
-            await player.player_object.send("".join(single_line_emoji_list))
-            await player.player_object.send(
+            messages.append("".join(single_line_emoji_list))
+            messages.append(
                 f"```{'|'.join(index_dict[i].split('|')[: len(single_line_emoji_list) * 2])}|```"
             )
 
+        if len(player.player_hand_messages) == 0:
+            await player.player_object.send(
+                "- - - - - - - - - - - - - - - - Current ✋ - - - - - - - - - - - - - - - -"
+            )
 
-async def direct_message_stop(ctx, player_pool):
-    for p in player_pool:
-        player = player_pool[p]
-        await player.player_object.send("Game stopped.")
+            for message in messages:
+                player.player_hand_messages.append(
+                    await player.player_object.send(message)
+                )
+        else:
+            for mi, message in enumerate(messages):
+                if mi >= len(player.player_hand_messages):
+                    player.player_hand_messages.append(
+                        await player.player_object.send(message)
+                    )
+                else:
+                    await player.player_hand_messages[mi].edit(content=message)
 
 
 async def direct_message_winner(ctx, player_pool, winner_id):
     for p in player_pool:
         player = player_pool[p]
         if p == winner_id:
-            await player.player_object.send("You are the winner!")
+            await player.player_object.send("Game over, you are the winner!")
             return
-        await player.player_object.send("Game ended.")
+        await player.player_object.send(f"Game over, <@{winner_id}> won.")
 
 
 async def show_board(ctx, lobby):
@@ -76,8 +131,9 @@ async def show_board(ctx, lobby):
     ]
     card_left = len(lobby.player_pool[owner].cards)
     description = f"`{combo._type.capitalize()} by` <@{owner}> `{card_left} card{'s' * int(card_left > 1)} left`"
-    await ctx.send(f"{''.join(emoji_list)}")
-    await ctx.send(f"{description}")
+    messages = [f"{''.join(emoji_list)}", f"{description}"]
+    [await ctx.send(msg) for msg in messages]
+    await message_board_state(lobby.player_pool, messages)
 
 
 async def show_turn(ctx, lobby):
@@ -116,7 +172,7 @@ async def ping(ctx):
     await ctx.send("Pong!")
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=["r"])
 async def random(ctx, mode="card", number=1):
     if number > MAX_NUMBER:
         await ctx.send("Limit number is {}".format(MAX_NUMBER))
@@ -140,7 +196,7 @@ async def random(ctx, mode="card", number=1):
     await ctx.send("\n".join(s))
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=["f"])
 async def flip(ctx, number=1):
     if number > MAX_NUMBER:
         await ctx.send("Limit number is {}".format(MAX_NUMBER))
@@ -151,7 +207,7 @@ async def flip(ctx, number=1):
 
 
 # Commands - Lobby
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=["c"])
 async def create(ctx):
     s, c, n, l = context_unpack(ctx)
     for lobby in SERVER.lobby_list:
@@ -168,7 +224,7 @@ async def create(ctx):
     await ctx.send("This channel is occupied. <@{}>".format(n))
 
 
-@bot.command(pass_context=True, aliases=['j'])
+@bot.command(pass_context=True, aliases=["j"])
 async def join(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -192,7 +248,7 @@ async def join(ctx):
         await ctx.send("Sorry, this game is full. <@{}>".format(n))
 
 
-@bot.command(pass_context=True, 'l')
+@bot.command(pass_context=True, aliases=["l"])
 async def leave(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -209,15 +265,14 @@ async def leave(ctx):
             return
         if len(SERVER.lobby_list[l].player_pool) == 1 & SERVER.lobby_list[l].started:
             SERVER.lobby_list[l].stop()
-            await ctx.send("Only 1 player left, game stopped.")
-            await direct_message_stop(ctx, SERVER.lobby_list[l].player_pool)
+            message_status(player_pool, "Only 1 player left, game stopped.")
         if SERVER.lobby_list[l].host_id == n:
             new_host = SERVER.lobby_list[l].set_random_host()
             await ctx.send("Host left, <@{}> is assigned as new host.".format(new_host))
             return
 
 
-@bot.command(pass_context=True, aliases=['go'])
+@bot.command(pass_context=True, aliases=["go", "g"])
 async def start(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -232,11 +287,19 @@ async def start(ctx):
             return
         SERVER.lobby_list[l].start()
         await ctx.send("Game started! Your cards will be direct messaged to you.")
+        # Set up DM board state for all players
+        await message_board_state(SERVER.lobby_list[l].player_pool, {})
         await show_turn(ctx, SERVER.lobby_list[l])
-        await direct_message_card(ctx, SERVER.lobby_list[l].player_pool)
+        await message_status(
+            SERVER.lobby_list[l].player_pool,
+            f"It's <@{SERVER.lobby_list[l].whos_turn()}>'s turn.",
+            SERVER.lobby_list[l].whos_turn(),
+            "It's your turn.",
+        )
+        await direct_message_card(SERVER.lobby_list[l].player_pool)
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=["kill", "k"])
 async def stop(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
@@ -249,7 +312,33 @@ async def stop(ctx):
         await ctx.send("Game stopped by host.")
 
 
-@bot.command(pass_context=True, aliases=['t', 'play', 'p'])
+# Sort cards
+@bot.command(pass_context=True)
+async def sort(ctx, sort_value="n"):
+    _, _, n, l = context_unpack(ctx)
+
+    if l not in SERVER.lobby_list:
+
+        def find_lobby_id(item):
+            l_id, lob = item
+            if n in lob.player_pool:
+                return True
+            return False
+
+        l, _ = next(filter(find_lobby_id, SERVER.lobby_list.items(),))
+
+    if n not in SERVER.lobby_list[l].player_pool:
+        return
+    if not SERVER.lobby_list[l].started:
+        return
+
+    player = SERVER.lobby_list[l].player_pool[n]
+
+    player.sort_cards(sort_value)
+    await direct_message_card({n: player})
+
+
+@bot.command(pass_context=True, aliases=["t", "play", "p"])
 async def throw(ctx, *args):
     _, _, n, l = context_unpack(ctx)
 
@@ -289,6 +378,11 @@ async def throw(ctx, *args):
         await ctx.send(res_msg[res - 1])
         return
     player.throw_cards(indexes)
+
+    player.player_hand_messages = []
+    player.player_status_message = None
+    player.player_board_messages = []
+
     channel = ctx.message.channel
     if type(channel) is discord.DMChannel:
         channel = bot.get_channel(int(l.split("-")[1]))
@@ -301,10 +395,16 @@ async def throw(ctx, *args):
         await direct_message_winner(ctx, SERVER.lobby_list[l].player_pool, n)
     else:
         await show_turn(channel, SERVER.lobby_list[l])
-        await direct_message_card(ctx, {n: SERVER.lobby_list[l].player_pool[n]})
+        await message_status(
+            SERVER.lobby_list[l].player_pool,
+            f"It's <@{SERVER.lobby_list[l].whos_turn()}>'s turn.",
+            SERVER.lobby_list[l].whos_turn(),
+            "It's your turn.",
+        )
+        await direct_message_card({n: SERVER.lobby_list[l].player_pool[n]})
 
 
-@bot.command(pass_context=True, aliases=['pass','s'])
+@bot.command(pass_context=True, aliases=["pass", "s"])
 async def skip(ctx, *args):
     _, _, n, l = context_unpack(ctx)
 
@@ -330,6 +430,7 @@ async def skip(ctx, *args):
     if type(channel) is discord.DMChannel:
         channel = bot.get_channel(int(l.split("-")[1]))
     await channel.send("<@{}> skipped.".format(n))
+    await message_status(SERVER.lobby_list[l].player_pool, "<@{}> skipped.".format(n))
     await show_board(channel, SERVER.lobby_list[l])
 
 

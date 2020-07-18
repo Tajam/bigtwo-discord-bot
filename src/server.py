@@ -79,14 +79,24 @@ class Lobby:
     def start(self):
         if self.started:
             return False
+        num_players = len(self.player_pool)
         self.started = True
         shuffled_cards = BigTwo.DECK.list_random()
-        x = math.floor(len(shuffled_cards) / len(self.player_pool))
+
+        # If we have two players, then deal only 13 cards
+        if len(self.player_pool) <= 2:
+            x = 13
+        else:
+            x = math.floor(len(shuffled_cards) / len(self.player_pool))
+
         for _ in range(x):
             for i in self.player_pool:
                 self.player_pool[i].give_card(shuffled_cards.pop())
+
         # Give the extra card to the player who owns the smallest card
-        smallest_card = BigTwo.DECK.get_card(BigTwoRank.SMALLEST, PokerSuit.DIAMONDS)
+        smallest_card = sorted(
+            [card for player in self.player_pool.values() for card in player.cards]
+        )[0]
         if len(self.player_pool) == 3:
             for i in self.player_pool:
                 if self.player_pool[i].have_card(smallest_card):
@@ -133,5 +143,5 @@ class Lobby:
 
     def next_turn(self):
         self.player_turn = self.player_turn[1:] + [self.player_turn[0]]
-        if self.whos_turn() == self.current_owner:
+        if len(self.player_pool) > 1 and self.whos_turn() == self.current_owner:
             self.current_combo = None
