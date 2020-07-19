@@ -53,9 +53,14 @@ async def message_status(
             await player.player_object.send(
                 "- - - - - - - - - - - - - - - - Current ⚐ - - - - - - - - - - - - - - - -"
             )
-            player.player_status_message = await player.player_object.send(
-                group_message
-            )
+            if p == specific_player:
+                player.player_status_message = await player.player_object.send(
+                    specific_player_message
+                )
+            else:
+                player.player_status_message = await player.player_object.send(
+                    group_message
+                )
         else:
             if p == specific_player:
                 await player.player_status_message.edit(content=specific_player_message)
@@ -110,13 +115,16 @@ async def direct_message_card(player_pool):
                     await player.player_hand_messages[mi].edit(content=message)
 
 
-async def direct_message_winner(ctx, player_pool, winner_id):
-    for p in player_pool:
-        player = player_pool[p]
-        if p == winner_id:
-            await player.player_object.send("Game over, you are the winner!")
-            return
-        await player.player_object.send(f"Game over, <@{winner_id}> won.")
+async def direct_message_winner(ctx, lobby):
+    place = {0: "🥇", 1: "🥈", 2: "🥉"}
+    message = ""
+    for index, winner in enumerate(lobby.winners):
+        message += f"{place[index]}: <@{winner}>\n"
+        
+    message += "Game Over!"
+    for p in lobby.player_pool:
+        player = lobby.player_pool[p]
+        await player.player_object.send(message)
 
 
 async def show_board(ctx, lobby):
@@ -124,7 +132,7 @@ async def show_board(ctx, lobby):
     combo = lobby.current_combo
     if combo is None:
         return
-    card_list_msg = [f"{card.rank._name}{card.suit._name}" for card in combo.card_list]
+    card_list_msg = [f"{str(card)}" for card in combo.card_list]
     emoji_list = [
         f"{next(filter(lambda emoji: emoji_name == emoji.name , bot.emojis))}"
         for emoji_name in card_list_msg
@@ -172,7 +180,7 @@ async def ping(ctx):
     await ctx.send("Pong!")
 
 
-@bot.command(pass_context=True, aliases=["r"])
+@bot.command(pass_context=True)
 async def random(ctx, mode="card", number=1):
     if number > MAX_NUMBER:
         await ctx.send("Limit number is {}".format(MAX_NUMBER))
@@ -204,6 +212,57 @@ async def flip(ctx, number=1):
     r = ["`Head`", "`Tail`"]
     s = ["`{:0>2d}` `{}`".format(n + 1, r[rnd.randint(0, 1)]) for n in range(number)]
     await ctx.send("\n".join(s))
+
+
+@bot.command(pass_context=True, aliases=["r"])
+async def refresh(ctx):
+    s, c, n, l = context_unpack(ctx)
+    if l not in SERVER.lobby_list:
+
+        def find_lobby_id(item):
+            l_id, lob = item
+            if n in lob.player_pool:
+                return True
+            return False
+
+        l, _ = next(filter(find_lobby_id, SERVER.lobby_list.items(),))
+
+    if n not in SERVER.lobby_list[l].player_pool:
+        return
+    if not SERVER.lobby_list[l].started:
+        return
+    player = SERVER.lobby_list[l].player_pool[n]
+    board_messages = player.player_board_messages
+    status_message = player.player_status_message
+    player.player_hand_messages = []
+    player.player_status_message = None
+    player.player_board_messages = []
+    single_player = {n: player}
+    await message_board_state(
+        single_player, [message_object.content for message_object in board_messages]
+    )
+    await message_status(single_player, status_message.content)
+    await direct_message_card(single_player)
+
+
+@bot.command(pass_context=True, aliases=["h"])
+async def hands(ctx):
+    s, c, n, l = context_unpack(ctx)
+    if l not in SERVER.lobby_list:
+
+        def find_lobby_id(item):
+            l_id, lob = item
+            if n in lob.player_pool:
+                return True
+            return False
+
+        l, _ = next(filter(find_lobby_id, SERVER.lobby_list.items(),))
+
+    for player_id in SERVER.lobby_list[l].player_pool:
+        if n != player_id:
+            await ctx.send(
+                f"<@{player_id}> has {len(SERVER.lobby_list[l].player_pool[player_id].cards)} card left."
+            )
 
 
 # Commands - Lobby
@@ -264,8 +323,10 @@ async def leave(ctx):
             await ctx.send("Everyone has left the game, game closed.")
             return
         if len(SERVER.lobby_list[l].player_pool) == 1 & SERVER.lobby_list[l].started:
-            SERVER.lobby_list[l].stop()
-            message_status(player_pool, "Only 1 player left, game stopped.")
+            message_status(
+                SERVER.lobby_list[l].player_pool, "Only 1 player left, game stopped."
+            )
+            del SERVER.lobby_list[l]
         if SERVER.lobby_list[l].host_id == n:
             new_host = SERVER.lobby_list[l].set_random_host()
             await ctx.send("Host left, <@{}> is assigned as new host.".format(new_host))
@@ -276,9 +337,6 @@ async def leave(ctx):
 async def start(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
-        if n != SERVER.lobby_list[l].host_id:
-            await ctx.send("You are not the host. <@{}>".format(n))
-            return
         if SERVER.lobby_list[l].started:
             await ctx.send("Game already started. <@{}>".format(n))
             return
@@ -306,9 +364,7 @@ async def stop(ctx):
         if n != SERVER.lobby_list[l].host_id:
             await ctx.send("You are not the host. <@{}>".format(n))
             return
-        if not SERVER.lobby_list[l].stop():
-            await ctx.send("Game already stopped. <@{}>".format(n))
-            return
+        del SERVER.lobby_list[l]
         await ctx.send("Game stopped by host.")
 
 
@@ -374,7 +430,7 @@ async def throw(ctx, *args):
         "Invalid card combination. <@{}>".format(n),
         "Opponent card is better. <@{}>".format(n),
     ]
-    if res != 0:
+    if res != 0 and res != 4:
         await ctx.send(res_msg[res - 1])
         return
     player.throw_cards(indexes)
@@ -390,18 +446,40 @@ async def throw(ctx, *args):
 
     # Check victory
     if len(player.cards) == 0:
-        SERVER.lobby_list[l].stop()
-        await channel.send("<@{}> wins the game!".format(n))
-        await direct_message_winner(ctx, SERVER.lobby_list[l].player_pool, n)
+        SERVER.lobby_list[l].add_winner(n)
+        place = {1: "first place", 2: "second place", 3: "third place"}
+
+        await channel.send(
+            f"<@{n}> wins the {place[len(SERVER.lobby_list[l].winners)]}!"
+        )
+        if len(SERVER.lobby_list[l].player_turn) == 1:
+            await direct_message_winner(ctx, SERVER.lobby_list[l])
+            del SERVER.lobby_list[l]
+            return
+
+    await show_turn(channel, SERVER.lobby_list[l])
+    if len(player.cards) == 0:        
+        await message_status(
+            SERVER.lobby_list[l].player_pool,
+            f"<@{n}> has won. <@{SERVER.lobby_list[l].whos_turn()}> can play anything.",
+            SERVER.lobby_list[l].whos_turn(),
+            f"<@{n}> has won so you can play anything.",
+        )
+    elif res == 4:
+        await message_status(
+            SERVER.lobby_list[l].player_pool,
+            f"Your turn has been skipped. <@{SERVER.lobby_list[l].whos_turn()}> played an unbeatable combo.",
+            SERVER.lobby_list[l].whos_turn(),
+            "It's your turn.",
+        )
     else:
-        await show_turn(channel, SERVER.lobby_list[l])
         await message_status(
             SERVER.lobby_list[l].player_pool,
             f"It's <@{SERVER.lobby_list[l].whos_turn()}>'s turn.",
             SERVER.lobby_list[l].whos_turn(),
             "It's your turn.",
         )
-        await direct_message_card({n: SERVER.lobby_list[l].player_pool[n]})
+    await direct_message_card({n: SERVER.lobby_list[l].player_pool[n]})
 
 
 @bot.command(pass_context=True, aliases=["pass", "s"])
@@ -429,9 +507,14 @@ async def skip(ctx, *args):
     channel = ctx.message.channel
     if type(channel) is discord.DMChannel:
         channel = bot.get_channel(int(l.split("-")[1]))
-    await channel.send("<@{}> skipped.".format(n))
-    await message_status(SERVER.lobby_list[l].player_pool, "<@{}> skipped.".format(n))
     await show_board(channel, SERVER.lobby_list[l])
+    await channel.send(
+        f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn."
+    )
+    await message_status(
+        SERVER.lobby_list[l].player_pool,
+        f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn.",
+    )
 
 
 while True:
