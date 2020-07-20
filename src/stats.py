@@ -22,9 +22,9 @@ class Stats:
     def update_stats(self, winners, players):
         current_stats = self.read_stats_file()
         for place, winner in enumerate(winners):
-            current_stats[winner][str(place)] += 1
+            current_stats[str(winner)][str(place)] += 1
         for loser in set(players) - set(winners):
-            current_stats[loser]["3"] += 1
+            current_stats[str(loser)]["3"] += 1
         with open(self.stats_file, "w") as sf:
             sf.write(json.dumps(current_stats))
 
