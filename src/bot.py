@@ -330,6 +330,10 @@ async def leave(ctx):
             del SERVER.lobby_list[l]
             return
         else:
+            if SERVER.lobby_list[l].leave(ctx.message.author):
+                SERVER.remove_lobby(s, c)
+                await ctx.send("Everyone has left the game, game closed.")
+                return
             await ctx.send("Game left! <@{}>".format(n))
             if SERVER.lobby_list[l].host_id == n:
                 new_host = SERVER.lobby_list[l].set_random_host()
