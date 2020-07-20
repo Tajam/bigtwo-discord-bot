@@ -173,6 +173,8 @@ bot = commands.Bot(command_prefix="-")
 # Events
 @bot.event
 async def on_ready():
+    activity = discord.Game(name="-help", type=4)
+    await bot.change_presence(status=discord.Status.online, activity=activity)
     print("BigTwo bot is up...")
 
 
