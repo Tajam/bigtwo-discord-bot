@@ -1,10 +1,14 @@
-import discord
-from discord.ext import commands
-from bigtwo import BigTwo
-from server import Server
 import random as rnd
 import time
 from math import ceil
+
+import discord
+from discord.ext import commands
+
+from bigtwo import BigTwo
+from server import Server
+from stats import Stats
+
 
 # Global functions
 def get_token():
@@ -120,7 +124,7 @@ async def direct_message_winner(ctx, lobby):
     message = ""
     for index, winner in enumerate(lobby.winners):
         message += f"{place[index]}: <@{winner}>\n"
-        
+
     message += "Game Over!"
     for p in lobby.player_pool:
         player = lobby.player_pool[p]
@@ -161,7 +165,8 @@ MAX_NUMBER = 26
 
 # Server object for lobbies
 SERVER = Server("BigTwo")
-
+STATS = Stats()
+stats = STATS.read_stats_file()
 # Instantiate bot and set command prefix
 bot = commands.Bot(command_prefix="-")
 
@@ -315,22 +320,23 @@ async def leave(ctx):
             await ctx.send("You did not join any game. <@{}>".format(n))
             return
         if SERVER.lobby_list[l].started:
-            await ctx.send("Abandoned game! <@{}>".format(n))
-        else:
-            await ctx.send("Game left! <@{}>".format(n))
-        if SERVER.lobby_list[l].leave(ctx.message.author):
-            SERVER.remove_lobby(s, c)
-            await ctx.send("Everyone has left the game, game closed.")
-            return
-        if len(SERVER.lobby_list[l].player_pool) == 1 & SERVER.lobby_list[l].started:
-            message_status(
+            await ctx.send("Abandoned game! <@{}>, Game Over!".format(n))
+            STATS.update_stats(
+                [], {n: SERVER.lobby_list[l].player_pool[n]},
+            )
+            await message_status(
                 SERVER.lobby_list[l].player_pool, "Only 1 player left, game stopped."
             )
             del SERVER.lobby_list[l]
-        if SERVER.lobby_list[l].host_id == n:
-            new_host = SERVER.lobby_list[l].set_random_host()
-            await ctx.send("Host left, <@{}> is assigned as new host.".format(new_host))
             return
+        else:
+            await ctx.send("Game left! <@{}>".format(n))
+            if SERVER.lobby_list[l].host_id == n:
+                new_host = SERVER.lobby_list[l].set_random_host()
+                await ctx.send(
+                    "Host left, <@{}> is assigned as new host.".format(new_host)
+                )
+                return
 
 
 @bot.command(pass_context=True, aliases=["go", "g"])
@@ -454,11 +460,14 @@ async def throw(ctx, *args):
         )
         if len(SERVER.lobby_list[l].player_turn) == 1:
             await direct_message_winner(ctx, SERVER.lobby_list[l])
+            STATS.update_stats(
+                SERVER.lobby_list[l].winners, SERVER.lobby_list[l].player_pool.keys()
+            )
             del SERVER.lobby_list[l]
             return
 
     await show_turn(channel, SERVER.lobby_list[l])
-    if len(player.cards) == 0:        
+    if len(player.cards) == 0:
         await message_status(
             SERVER.lobby_list[l].player_pool,
             f"<@{n}> has won. <@{SERVER.lobby_list[l].whos_turn()}> can play anything.",
@@ -515,6 +524,30 @@ async def skip(ctx, *args):
         SERVER.lobby_list[l].player_pool,
         f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn.",
     )
+
+
+@bot.command(pass_context=True)
+async def help(ctx):
+    help_message = """```BigTwoBot Command List:
+Set-up Commands:
+-[create/c] Creates a game lobby
+-[join/j] Joins current game lobby
+-[start/go/g] Starts a game, once started no other players may join, needs at least 2 players before you start the game
+-[leave/l] Leaves a lobby or game
+-[stop] Stops a game or game lobby
+-[stat] Shows points, wins, and losses
+Gameplay Commands:
+-[throw/play/p] # (# # # #) Plays cards by index from current hand
+-[skip/s] Skips your turn
+-[sort] (n/s) Sorts your hand numerically or by suit
+-[refresh/r] Refresh the view of the current board, status, and hand (used when there is an error with message)
+-[hands/h] Shows hand size of all other players```"""
+    await ctx.send(help_message)
+
+
+@bot.command(pass_context=True, aliases=["stat"])
+async def stats(ctx):
+    await ctx.send(STATS.get_stats(bot, ctx.message.author.id))
 
 
 while True:
