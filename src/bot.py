@@ -45,7 +45,8 @@ async def message_board_state(player_pool, messages):
                     )
         else:
             for mi, message in enumerate(messages):
-                await player.player_board_messages[mi].edit(content=message)
+                if mi < len(player.player_board_messages):
+                    await player.player_board_messages[mi].edit(content=message)
 
 
 async def message_status(
