@@ -322,17 +322,7 @@ async def leave(ctx):
         if n not in SERVER.lobby_list[l].player_pool:
             await ctx.send("You did not join any game. <@{}>".format(n))
             return
-        if SERVER.lobby_list[l].started:
-            await ctx.send("Abandoned game! <@{}>, Game Over!".format(n))
-            STATS.update_stats(
-                [], {n: SERVER.lobby_list[l].player_pool[n]},
-            )
-            await message_status(
-                SERVER.lobby_list[l].player_pool, "Only 1 player left, game stopped."
-            )
-            del SERVER.lobby_list[l]
-            return
-        else:
+        if not SERVER.lobby_list[l].started:
             if SERVER.lobby_list[l].leave(ctx.message.author):
                 SERVER.remove_lobby(s, c)
                 await ctx.send("Everyone has left the game, game closed.")

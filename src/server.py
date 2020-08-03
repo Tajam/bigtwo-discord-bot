@@ -172,6 +172,6 @@ class Lobby:
                 self.current_combo = None
 
     def add_winner(self, player_id):
-        self.winners.append(player_id)
         self.player_turn.remove(player_id)
+        self.winners.append(player_id)
         self.current_combo = None
