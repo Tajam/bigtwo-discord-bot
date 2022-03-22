@@ -277,12 +277,20 @@ async def hands(ctx):
 @bot.command(pass_context=True, aliases=["c"])
 async def create(ctx):
     s, c, n, l = context_unpack(ctx)
+    delete_dead_lobby = False
     for lobby in SERVER.lobby_list:
         if n in SERVER.lobby_list[lobby].player_pool:
-            await ctx.send(
-                "You already joined a game in other channel. <@{}>".format(n)
-            )
-            return
+            if discord.utils.find(
+                lambda m: m.id == int(lobby.split("-")[1]), ctx.guild.text_channels
+            ):
+                await ctx.send(
+                    "You already joined a game in other channel. <@{}>".format(n)
+                )
+                return
+            else:
+                delete_dead_lobby = True
+    if delete_dead_lobby:
+        del SERVER.lobby_list[lobby]
     if SERVER.add_lobby(s, c):
         await ctx.send("<@{}> created a game in this channel.".format(n))
         SERVER.lobby_list[l].join(ctx.message.author)
