@@ -17,7 +17,7 @@ class Player:
         self.cards += cards
         self.cards.sort()
 
-    def throw_cards(self, indexes):
+    def play_cards(self, indexes):
         out, left = [], []
         for i, n in enumerate(self.cards):
             if i in indexes:

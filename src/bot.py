@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 
 from bigtwo import BigTwo
-from server import Server
+from server import Server, Lobby
 from stats import Stats
 
 
@@ -16,15 +16,17 @@ def get_token():
         return f.read()
 
 
+bot = discord.Bot()
+
 def context_unpack(ctx):
-    s = ctx.message.guild.id if ctx.message.guild else None
-    c = ctx.message.channel.id
-    n = ctx.message.author.id
-    l = "{}-{}".format(s, c)
+    s = ctx.guild_id
+    c = ctx.channel_id
+    n = ctx.author.id
+    l = f"{s}-{c}"
     return [s, c, n, l]
 
 
-async def message_board_state(player_pool, messages):
+async def message_board_state(player_pool: dict, messages: str):
     for p in player_pool:
         player = player_pool[p]
         if len(player.player_board_messages) == 0:
@@ -50,7 +52,10 @@ async def message_board_state(player_pool, messages):
 
 
 async def message_status(
-    player_pool, group_message, specific_player=None, specific_player_message=None,
+    player_pool: dict,
+    group_message: str,
+    specific_player: str = None,
+    specific_player_message: str = None,
 ):
     for p in player_pool:
         player = player_pool[p]
@@ -74,7 +79,7 @@ async def message_status(
 
 
 # Game functions
-async def direct_message_card(player_pool):
+async def direct_message_card(player_pool: dict):
     for p in player_pool:
         player = player_pool[p]
         emoji_list = [
@@ -120,7 +125,7 @@ async def direct_message_card(player_pool):
                     await player.player_hand_messages[mi].edit(content=message)
 
 
-async def direct_message_winner(ctx, lobby):
+async def direct_message_winner(ctx, lobby: Lobby):
     place = {0: "🥇", 1: "🥈", 2: "🥉"}
     message = ""
     for index, winner in enumerate(lobby.winners):
@@ -132,7 +137,7 @@ async def direct_message_winner(ctx, lobby):
         await player.player_object.send(message)
 
 
-async def show_board(ctx, lobby):
+async def show_board(ctx, lobby: Lobby):
     owner = lobby.current_owner
     combo = lobby.current_combo
     if combo is None:
@@ -145,18 +150,18 @@ async def show_board(ctx, lobby):
     card_left = len(lobby.player_pool[owner].cards)
     description = f"`{combo._type.capitalize()} by` <@{owner}> `{card_left} card{'s' * int(card_left > 1)} left`"
     messages = [f"{''.join(emoji_list)}", f"{description}"]
-    [await ctx.send(msg) for msg in messages]
+    [await ctx.respond(msg) for msg in messages]
     await message_board_state(lobby.player_pool, messages)
 
 
-async def show_turn(ctx, lobby):
+async def show_turn(ctx, lobby: Lobby):
     player = lobby.whos_turn()
     owner = lobby.current_owner
     combo = lobby.current_combo
     msg = "It's your turn. <@{}>".format(player)
     if combo == None:
-        msg += "\nIt's free to throw."
-    await ctx.send(msg)
+        msg += "\nYou are free to play anything."
+    await ctx.respond(msg)
 
 
 # Constants
@@ -168,8 +173,6 @@ MAX_NUMBER = 26
 SERVER = Server("BigTwo")
 STATS = Stats()
 stats = STATS.read_stats_file()
-# Instantiate bot and set command prefix
-bot = commands.Bot(command_prefix="-")
 
 # Events
 @bot.event
@@ -179,50 +182,8 @@ async def on_ready():
     print("BigTwo bot is up...")
 
 
-# Remove build-in command
-bot.remove_command("help")
-
 # Commands - General
-@bot.command(pass_context=True)
-async def ping(ctx):
-    await ctx.send("Pong!")
-
-
-@bot.command(pass_context=True)
-async def random(ctx, mode="card", number=1):
-    if number > MAX_NUMBER:
-        await ctx.send("Limit number is {}".format(MAX_NUMBER))
-        return
-    s = ""
-    if mode == "card":
-        s = [
-            "`{:0>2d}` {}".format(n + 1, BigTwo.DECK.get_random().emoji())
-            for n in range(number)
-        ]
-    if mode == "suit":
-        s = [
-            "`{:0>2d}` {}".format(n + 1, BigTwo.SUITSET.get_random()._emoji)
-            for n in range(number)
-        ]
-    if mode == "rank":
-        s = [
-            "`{:0>2d}` {}".format(n + 1, BigTwo.RANKSET.get_random()._emoji)
-            for n in range(number)
-        ]
-    await ctx.send("\n".join(s))
-
-
-@bot.command(pass_context=True, aliases=["f"])
-async def flip(ctx, number=1):
-    if number > MAX_NUMBER:
-        await ctx.send("Limit number is {}".format(MAX_NUMBER))
-        return
-    r = ["`Head`", "`Tail`"]
-    s = ["`{:0>2d}` `{}`".format(n + 1, r[rnd.randint(0, 1)]) for n in range(number)]
-    await ctx.send("\n".join(s))
-
-
-@bot.command(pass_context=True, aliases=["r"])
+@bot.slash_command()
 async def refresh(ctx):
     s, c, n, l = context_unpack(ctx)
     if l not in SERVER.lobby_list:
@@ -253,7 +214,7 @@ async def refresh(ctx):
     await direct_message_card(single_player)
 
 
-@bot.command(pass_context=True, aliases=["h"])
+@bot.slash_command()
 async def hands(ctx):
     s, c, n, l = context_unpack(ctx)
     if l not in SERVER.lobby_list:
@@ -268,13 +229,13 @@ async def hands(ctx):
 
     for player_id in SERVER.lobby_list[l].player_pool:
         if n != player_id:
-            await ctx.send(
+            await ctx.respond(
                 f"<@{player_id}> has {len(SERVER.lobby_list[l].player_pool[player_id].cards)} card left."
             )
 
 
 # Commands - Lobby
-@bot.command(pass_context=True, aliases=["c"])
+@bot.slash_command()
 async def create(ctx):
     s, c, n, l = context_unpack(ctx)
     delete_dead_lobby = False
@@ -283,8 +244,8 @@ async def create(ctx):
             if discord.utils.find(
                 lambda m: m.id == int(lobby.split("-")[1]), ctx.guild.text_channels
             ):
-                await ctx.send(
-                    "You already joined a game in other channel. <@{}>".format(n)
+                await ctx.respond(
+                    f"You already joined a game in other channel. <@{n}>"
                 )
                 return
             else:
@@ -292,70 +253,70 @@ async def create(ctx):
     if delete_dead_lobby:
         del SERVER.lobby_list[lobby]
     if SERVER.add_lobby(s, c):
-        await ctx.send("<@{}> created a game in this channel.".format(n))
-        SERVER.lobby_list[l].join(ctx.message.author)
+        await ctx.respond(f"<@{n}> created a game in this channel.")
+        SERVER.lobby_list[l].join(ctx.author)
         SERVER.lobby_list[l].set_host(n)
         return
-    await ctx.send("This channel is occupied. <@{}>".format(n))
+    await ctx.respond(f"This channel is occupied. <@{n}>")
 
 
-@bot.command(pass_context=True, aliases=["j"])
+@bot.slash_command()
 async def join(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
         if SERVER.lobby_list[l].started:
             return
         if n in SERVER.lobby_list[l].player_pool:
-            await ctx.send("Already joined this game. <@{}>".format(n))
+            await ctx.respond(f"Already joined this game. <@{n}>")
             return
         if len(SERVER.lobby_list[l].player_pool) == 4:
-            await ctx.send("This game is full. <@{}>".format(n))
+            await ctx.respond(f"This game is full. <@{n}>")
             return
         for lobby in SERVER.lobby_list:
             if n in SERVER.lobby_list[lobby].player_pool:
-                await ctx.send(
-                    "You already joined a game in other channel. <@{}>".format(n)
+                await ctx.respond(
+                    f"You already joined a game in other channel. <@{n}>"
                 )
                 return
-        if SERVER.lobby_list[l].join(ctx.message.author):
-            await ctx.send("Joined game! <@{}>".format(n))
+        if SERVER.lobby_list[l].join(ctx.author):
+            await ctx.respond(f"Joined game! <@{n}>")
             return
-        await ctx.send("Sorry, this game is full. <@{}>".format(n))
+        await ctx.respond(f"Sorry, this game is full. <@{n}>")
 
 
-@bot.command(pass_context=True, aliases=["l"])
+@bot.slash_command()
 async def leave(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
         if n not in SERVER.lobby_list[l].player_pool:
-            await ctx.send("You did not join any game. <@{}>".format(n))
+            await ctx.respond(f"You did not join any game. <@{n}>")
             return
         if not SERVER.lobby_list[l].started:
-            if SERVER.lobby_list[l].leave(ctx.message.author):
+            if SERVER.lobby_list[l].leave(ctx.author):
                 SERVER.remove_lobby(s, c)
-                await ctx.send("Everyone has left the game, game closed.")
+                await ctx.respond("Everyone has left the game, game closed.")
                 return
-            await ctx.send("Game left! <@{}>".format(n))
+            await ctx.respond(f"Game left! <@{n}>")
             if SERVER.lobby_list[l].host_id == n:
                 new_host = SERVER.lobby_list[l].set_random_host()
-                await ctx.send(
-                    "Host left, <@{}> is assigned as new host.".format(new_host)
+                await ctx.respond(
+                    f"Host left, <@{n}> is assigned as new host.".format(new_host)
                 )
                 return
 
 
-@bot.command(pass_context=True, aliases=["go", "g"])
+@bot.slash_command()
 async def start(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
         if SERVER.lobby_list[l].started:
-            await ctx.send("Game already started. <@{}>".format(n))
+            await ctx.respond(f"Game already started. <@{n}>")
             return
         if len(SERVER.lobby_list[l].player_pool) < 2:
-            await ctx.send("This game need at least 2 players. <@{}>".format(n))
+            await ctx.respond(f"This game need at least 2 players. <@{n}>")
             return
         SERVER.lobby_list[l].start()
-        await ctx.send("Game started! Your cards will be direct messaged to you.")
+        await ctx.respond("Game started! Your cards will be direct messaged to you.")
         # Set up DM board state for all players
         await message_board_state(SERVER.lobby_list[l].player_pool, {})
         await show_turn(ctx, SERVER.lobby_list[l])
@@ -368,19 +329,19 @@ async def start(ctx):
         await direct_message_card(SERVER.lobby_list[l].player_pool)
 
 
-@bot.command(pass_context=True, aliases=["kill", "k"])
+@bot.slash_command()
 async def stop(ctx):
     s, c, n, l = context_unpack(ctx)
     if l in SERVER.lobby_list:
         if n != SERVER.lobby_list[l].host_id:
-            await ctx.send("You are not the host. <@{}>".format(n))
+            await ctx.respond(f"You are not the host. <@{n}>")
             return
         del SERVER.lobby_list[l]
-        await ctx.send("Game stopped by host.")
+        await ctx.respond("Game stopped by host.")
 
 
 # Sort cards
-@bot.command(pass_context=True)
+@bot.slash_command()
 async def sort(ctx, sort_value="n"):
     _, _, n, l = context_unpack(ctx)
 
@@ -403,10 +364,13 @@ async def sort(ctx, sort_value="n"):
 
     player.sort_cards(sort_value)
     await direct_message_card({n: player})
+    await ctx.respond(
+        f"Cards have been sorted by {'number' if sort_value == 'n' else 'suit'}"
+    )
 
 
-@bot.command(pass_context=True, aliases=["t", "play", "p"])
-async def throw(ctx, *args):
+@bot.slash_command()
+async def play(ctx, *, args):
     _, _, n, l = context_unpack(ctx)
 
     if l not in SERVER.lobby_list:
@@ -425,35 +389,35 @@ async def throw(ctx, *args):
         return
     indexes = []
     try:
-        indexes = [int(n) for n in args]
+        indexes = [int(n) for n in args.split(" ")]
     except Exception:
-        await ctx.send("Invalid input. <@{}>".format(n))
+        await ctx.respond(f"Invalid input. <@{n}>")
         return
     player = SERVER.lobby_list[l].player_pool[n]
     player_cards = player.cards
     if max(indexes) >= len(player_cards):
-        await ctx.send("Index exceed card number. <@{}>".format(n))
+        await ctx.respond(f"Index exceed card number. <@{n}>")
         return
     cards = player.peek_cards(indexes)
     res = SERVER.lobby_list[l].attack(n, cards)
     res_msg = [
-        "Not your turn. <@{}>".format(n),
-        "Invalid card combination. <@{}>".format(n),
-        "Opponent card is better. <@{}>".format(n),
+        f"Not your turn. <@{n}>",
+        f"Invalid card combination. <@{n}>",
+        f"Opponent card/combo is better. <@{n}>",
     ]
     if res != 0 and res != 4:
-        await ctx.send(res_msg[res - 1])
+        await ctx.respond(res_msg[res - 1])
         return
-    player.throw_cards(indexes)
+    player.play_cards(indexes)
 
     player.player_hand_messages = []
     player.player_status_message = None
     player.player_board_messages = []
 
-    channel = ctx.message.channel
-    if type(channel) is discord.DMChannel:
-        channel = bot.get_channel(int(l.split("-")[1]))
-    await show_board(channel, SERVER.lobby_list[l])
+    channel = ctx.channel_id
+    channel = bot.get_channel(int(l.split("-")[1]))
+
+    await show_board(ctx, SERVER.lobby_list[l])
 
     # Check victory
     if len(player.cards) == 0:
@@ -471,7 +435,7 @@ async def throw(ctx, *args):
             del SERVER.lobby_list[l]
             return
 
-    await show_turn(channel, SERVER.lobby_list[l])
+    await show_turn(ctx, SERVER.lobby_list[l])
     if len(player.cards) == 0:
         await message_status(
             SERVER.lobby_list[l].player_pool,
@@ -496,8 +460,8 @@ async def throw(ctx, *args):
     await direct_message_card({n: SERVER.lobby_list[l].player_pool[n]})
 
 
-@bot.command(pass_context=True, aliases=["pass", "s"])
-async def skip(ctx, *args):
+@bot.slash_command()
+async def skip(ctx):
     _, _, n, l = context_unpack(ctx)
 
     if l not in SERVER.lobby_list:
@@ -515,12 +479,14 @@ async def skip(ctx, *args):
     if not SERVER.lobby_list[l].whos_turn() == n:
         return
     if SERVER.lobby_list[l].current_combo == None:
-        await ctx.send("You cannot skip a free throw round. <@{}>".format(n))
+        await ctx.respond(f"You cannot skip a free play round. <@{n}>")
         return
+
     SERVER.lobby_list[l].next_turn()
-    channel = ctx.message.channel
-    if type(channel) is discord.DMChannel:
-        channel = bot.get_channel(int(l.split("-")[1]))
+
+    channel = ctx.channel_id
+    channel = bot.get_channel(int(l.split("-")[1]))
+
     await show_board(channel, SERVER.lobby_list[l])
     await channel.send(
         f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn."
@@ -531,33 +497,33 @@ async def skip(ctx, *args):
     )
 
 
-@bot.command(pass_context=True)
+@bot.slash_command()
 async def help(ctx):
     help_message = """```BigTwoBot Command List:
 Set-up Commands:
--[create/c] Creates a game lobby
--[join/j] Joins current game lobby
--[start/go/g] Starts a game, once started no other players may join, needs at least 2 players before you start the game
--[leave/l] Leaves a lobby or game
--[stop] Stops a game or game lobby
--[stat] Shows points, wins, and losses
+/[create] Creates a game lobby
+/[join] Joins current game lobby
+/[start] Starts a game, once started no other players may join, needs at least 2 players before you start the game
+/[leave] Leaves a lobby or game
+/[stop] Stops a game or game lobby
+/[stat] Shows points, wins, and losses
 Gameplay Commands:
--[throw/play/p] # (# # # #) Plays cards by index from current hand
--[skip/s] Skips your turn
--[sort] (n/s) Sorts your hand numerically or by suit
--[refresh/r] Refresh the view of the current board, status, and hand (used when there is an error with message)
--[hands/h] Shows hand size of all other players```"""
-    await ctx.send(help_message)
+/[play] # (# # # #) Plays cards by index from current hand
+/[skip] Skips your turn
+/[sort] (n/s) Sorts your hand numerically or by suit
+/[refresh] Refresh the view of the current board, status, and hand (used when there is an error with message)
+/[hands] Shows hand size of all other players```"""
+    await ctx.respond(help_message)
 
 
-@bot.command(pass_context=True, aliases=["stat"])
+@bot.slash_command()
 async def stats(ctx):
-    await ctx.send(STATS.get_stats(bot, ctx.message.author.id))
+    await ctx.respond(STATS.get_stats(bot, ctx.author.id))
 
 
 while True:
     try:
-        bot.loop.run_until_complete(bot.start(TOKEN))
+        bot.run(TOKEN)
     except BaseException:
         print("Connection error, retry in " + str(RETRY_DELAY) + " seconds.")
         time.sleep(RETRY_DELAY)
