@@ -150,7 +150,7 @@ async def show_board(ctx, lobby: Lobby):
     card_left = len(lobby.player_pool[owner].cards)
     description = f"`{combo._type.capitalize()} by` <@{owner}> `{card_left} card{'s' * int(card_left > 1)} left`"
     messages = [f"{''.join(emoji_list)}", f"{description}"]
-    [await ctx.respond(msg) for msg in messages]
+    [await ctx.send(msg) for msg in messages]
     await message_board_state(lobby.player_pool, messages)
 
 
@@ -308,25 +308,27 @@ async def leave(ctx):
 @bot.slash_command()
 async def start(ctx):
     s, c, n, l = context_unpack(ctx)
-    if l in SERVER.lobby_list:
-        if SERVER.lobby_list[l].started:
-            await ctx.respond(f"Game already started. <@{n}>")
-            return
-        if len(SERVER.lobby_list[l].player_pool) < 2:
-            await ctx.respond(f"This game need at least 2 players. <@{n}>")
-            return
-        SERVER.lobby_list[l].start()
-        await ctx.respond("Game started! Your cards will be direct messaged to you.")
-        # Set up DM board state for all players
-        await message_board_state(SERVER.lobby_list[l].player_pool, {})
-        await show_turn(ctx, SERVER.lobby_list[l])
-        await message_status(
-            SERVER.lobby_list[l].player_pool,
-            f"It's <@{SERVER.lobby_list[l].whos_turn()}>'s turn.",
-            SERVER.lobby_list[l].whos_turn(),
-            "It's your turn.",
-        )
-        await direct_message_card(SERVER.lobby_list[l].player_pool)
+    if l not in SERVER.lobby_list:
+        await ctx.respond("You have to create a lobby first and have players \"/join\" the lobby.")
+        return
+    if SERVER.lobby_list[l].started:
+        await ctx.respond(f"Game already started. <@{n}>")
+        return
+    if len(SERVER.lobby_list[l].player_pool) < 2:
+        await ctx.respond(f"This game need at least 2 players. <@{n}>")
+        return
+    SERVER.lobby_list[l].start()
+    await ctx.respond("Game started! Your cards will be direct messaged to you.")
+    # Set up DM board state for all players
+    await message_board_state(SERVER.lobby_list[l].player_pool, {})
+    await show_turn(ctx, SERVER.lobby_list[l])
+    await message_status(
+        SERVER.lobby_list[l].player_pool,
+        f"It's <@{SERVER.lobby_list[l].whos_turn()}>'s turn.",
+        SERVER.lobby_list[l].whos_turn(),
+        "It's your turn.",
+    )
+    await direct_message_card(SERVER.lobby_list[l].player_pool)
 
 
 @bot.slash_command()
@@ -370,7 +372,7 @@ async def sort(ctx, sort_value="n"):
 
 
 @bot.slash_command()
-async def play(ctx, *, args):
+async def play(ctx, *, cards):
     _, _, n, l = context_unpack(ctx)
 
     if l not in SERVER.lobby_list:
@@ -389,7 +391,7 @@ async def play(ctx, *, args):
         return
     indexes = []
     try:
-        indexes = [int(n) for n in args.split(" ")]
+        indexes = [int(n) for n in cards.split(" ")]
     except Exception:
         await ctx.respond(f"Invalid input. <@{n}>")
         return
@@ -414,17 +416,16 @@ async def play(ctx, *, args):
     player.player_status_message = None
     player.player_board_messages = []
 
-    channel = ctx.channel_id
     channel = bot.get_channel(int(l.split("-")[1]))
 
-    await show_board(ctx, SERVER.lobby_list[l])
+    await show_board(channel, SERVER.lobby_list[l])
 
     # Check victory
     if len(player.cards) == 0:
         SERVER.lobby_list[l].add_winner(n)
         place = {1: "first place", 2: "second place", 3: "third place"}
 
-        await channel.send(
+        await ctx.respond(
             f"<@{n}> wins the {place[len(SERVER.lobby_list[l].winners)]}!"
         )
         if len(SERVER.lobby_list[l].player_turn) == 1:
@@ -482,19 +483,18 @@ async def skip(ctx):
         await ctx.respond(f"You cannot skip a free play round. <@{n}>")
         return
 
+    await ctx.respond(
+        f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn."
+    )
     SERVER.lobby_list[l].next_turn()
 
-    channel = ctx.channel_id
     channel = bot.get_channel(int(l.split("-")[1]))
 
     await show_board(channel, SERVER.lobby_list[l])
-    await channel.send(
-        f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn."
-    )
     await message_status(
         SERVER.lobby_list[l].player_pool,
         f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn.",
-    )
+    )    
 
 
 @bot.slash_command()
