@@ -1,3 +1,5 @@
 src/__pycache__
 src/.token
 .idea
+.vscode
+stats

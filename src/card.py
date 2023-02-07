@@ -3,9 +3,10 @@ import random
 from rank import RankSet, BigTwoRank
 from suit import SuitSet, PokerSuit
 
+random.seed(None)
+
 
 class Deck:
-
     def __init__(self, rankset, suitset):
         self.rankset = rankset
         self.suitset = suitset
@@ -37,10 +38,10 @@ class Card:
         self.suit = suit
 
     def __str__(self):
-        return str(self.rank) + ' of ' + str(self.suit)
+        return f"{self.rank._name}{self.suit._name}"
 
     def __repr__(self):
-        return self.__class__.__name__+'(\''+str(self)+'\')'
+        return self.__class__.__name__ + "('" + str(self) + "')"
 
     def __gt__(self, other):
         r = self.rank > other.rank
@@ -60,14 +61,11 @@ class Card:
         return r & s
 
     def emoji(self):
-        return  self.suit._emoji + self.rank._emoji
+        return self.suit._emoji + self.rank._emoji
 
 
-if __name__ == '__main__':
-    bigtwo_deck = Deck(
-        RankSet(BigTwoRank.CONFIG_FILE),
-        SuitSet(PokerSuit.CONFIG_FILE)
-        )
+if __name__ == "__main__":
+    bigtwo_deck = Deck(RankSet(BigTwoRank.CONFIG_FILE), SuitSet(PokerSuit.CONFIG_FILE))
     print(bigtwo_deck.get_random())
     print(bigtwo_deck.list())
     print(bigtwo_deck.list_random())
