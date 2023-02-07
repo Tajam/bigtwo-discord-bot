@@ -28,11 +28,11 @@ class Stats:
         with open(self.stats_file, "w") as sf:
             sf.write(json.dumps(current_stats))
 
-    def get_stats(self, bot, player_id):
+    def get_stats(self, ctx):
         stats = self.read_stats_file()
-        places = stats[str(player_id)]
+        places = stats[str(ctx.author.id)]
         message = "{:<12}⸾{:^7}⸾{:^5}⸾{:^5}⸾{:^5}⸾{:^7}\n".format(
-            f"{bot.get_user(player_id).name}",
+            f"{ctx.author.name}",
             "🧧: " + str(self.calculate_points(places)),
             "🥇: " + str(places["0"]),
             "🥈: " + str(places["1"]),

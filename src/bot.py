@@ -483,10 +483,10 @@ async def skip(ctx):
         await ctx.respond(f"You cannot skip a free play round. <@{n}>")
         return
 
+    SERVER.lobby_list[l].next_turn()
     await ctx.respond(
         f"<@{n}> skipped. It's <@{SERVER.lobby_list[l].player_turn[0]}> turn."
     )
-    SERVER.lobby_list[l].next_turn()
 
     channel = bot.get_channel(int(l.split("-")[1]))
 
@@ -518,7 +518,7 @@ Gameplay Commands:
 
 @bot.slash_command()
 async def stats(ctx):
-    await ctx.respond(STATS.get_stats(bot, ctx.author.id))
+    await ctx.respond(STATS.get_stats(ctx))
 
 
 while True:
